@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercurio Rush - Plataforma de Entregas</title>
+    <!-- Importar la librería oficial del cliente de Supabase de forma gratuita -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        :root {
+            --primary: #d97706;
+            --primary-hover: #b45309;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --success: #059669;
+            --danger: #dc2626;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--light); color: var(--dark); padding-bottom: 60px; }
+        header { background-color: var(--dark); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.4rem; border-bottom: 4px solid var(--primary); }
+        .container { max-width: 600px; margin: 20px auto; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn { display: block; width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; margin-top: 10px; text-decoration: none; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-secondary { background-color: #6b7280; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+        .nav-tabs { display: flex; justify-content: space-around; background: #e5e7eb; margin-bottom: 15px; border-radius: 6px; overflow: hidden; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: bold; color: #4b5563; }
+        .tab-btn.active { background: white; color: var(--primary); border-bottom: 3px solid var(--primary); }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; color: white; }
+        .badge-new { background-color: #3b82f6; }
+        .badge-progress { background-color: #f59e0b; }
+        .badge-done { background-color: var(--success); }
+        .card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 10px; background: #fafafa; }
+        .progress-bar-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 100%; margin: 8px 0; overflow: hidden; }
+        .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .footer-note { text-align: center; font-size: 0.8rem; color: #6b7280; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <header>⚡ MERCURIO RUSH ⚡</header>
+
+    <div class="container">
+        <!-- Navegación de Roles Temporal para Desarrollo -->
+        <div class="nav-tabs" id="roleTabs">
+            <button class="tab-btn active" onclick="switchRole('inicio')">Inicio</button>
+            <button class="tab-btn" onclick="switchRole('cliente')">Cliente</button>
+            <button class="tab-btn" onclick="switchRole('repartidor')">Repartidor</button>
+            <button class="tab-btn" onclick="switchRole('admin')">Admin</button>
+        </div>
+
+        <!-- PANTALLA 1: INICIO / EXPLICACIÓN -->
+        <div id="screen-inicio" class="screen active">
+            <h2 style="margin-bottom: 10px; color: var(--primary);">Entregas rápidas en Machala</h2>
+            <p style="color: #4b5563; margin-bottom: 15px;">Conectamos tus necesidades de envío con repartidores independientes calificados de la provincia de El Oro de forma segura y transparente.</p>
+            <div class="card">
+                <h3>¿Cómo empezar?</h3>
+                <p style="font-size: 0.95rem; margin-top: 5px;">Utiliza las pestañas superiores para navegar entre los perfiles simulados. En producción, el acceso estará restringido de acuerdo con tu inicio de sesión seguro.</p>
+            </div>
+            <button class="btn" onclick="switchRole('cliente')">Solicitar Entrega Ahora</button>
+        </div>
+
+        <!-- PANTALLA 2: ÁREA DEL CLIENTE -->
+        <div id="screen-cliente" class="screen">
+            <h2 style="color: var(--primary); margin-bottom: 15px;">Panel del Cliente</h2>
+            
+            <!-- Recompensas -->
+            <div class="card" style="border-left: 4px solid var(--success);">
+                <h4>🎁 Tus Recompensas de Fidelidad</h4>
+                <p style="font-size: 0.9rem; margin-top: 5px;">Próximo viaje gratis (Máx 1.5 km): <span id="txt-cuenta-gratis">0</span>/20 pedidos</p>
+                <div class="progress-bar-container"><div id="bar-gratis" class="progress-bar"></div></div>
+                
+                <p style="font-size: 0.9rem; margin-top: 10px;">Progreso Canasta Básica anual: <span id="txt-cuenta-canasta">0</span>/400 pedidos</p>
+                <div class="progress-bar-container"><div id="bar-canasta" class="progress-bar" style="background: var(--success);"></div></div>
+                <p style="font-size: 0.8rem; color:#6b7280; margin-top: 5px;">*No incluye pedidos cancelados ni fraudulentos.</p>
+            </div>
+
+            <!-- Formulario de Pedidos -->
+            <div class="card" style="margin-top: 15px;">
+                <h3>📦 Crear Nuevo Pedido</h3>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Dirección de Recogida</label>
+                    <input type="text" id="pedido-retiro" placeholder="Ej. Av. 25 de Junio y Rocafuerte">
+                </div>
+                <div class="form-group">
+                    <label>Dirección de Entrega</label>
+                    <input type="text" id="pedido-entrega" placeholder="Ej. Calle Tarqui y Sucre">
+                </div>
+                <div class="form-group">
+                    <label>Detalle del Producto / Paquete</label>
+                    <textarea id="pedido-detalle" rows="2" placeholder="Ej. Caja de calzado / Documentos urgentes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Precio Estimado de Entrega (USD)</label>
+                    <input type="number" id="pedido-precio" value="1.50" step="0.25" min="1.00">
+                </div>
+                <button class="btn btn-success" onclick="crearPedido()">Confirmar y Solicitar Pedido</button>
+            </div>
+
+            <!-- Historial Cliente -->
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">Mis Pedidos Recientes</h3>
+            <div id="lista-pedidos-cliente">
+                <p style="color: #6b7280; font-style: italic;">No tienes pedidos registrados.</p>
+            </div>
+        </div>
+
+        <!-- PANTALLA 3: ÁREA DEL REPARTIDOR -->
+        <div id="screen-repartidor" class="screen">
+            <h2 style="color: var(--primary); margin-bottom: 15px;">Panel del Repartidor</h2>
+            
+            <div class="card" style="background: #1f2937; color: white;">
+                <h3>Estado de Cuenta</h3>
+                <p style="margin-top: 5px; font-size: 1.1rem;">Créditos Disponibles: <strong id="lbl-repartidor-creditos" style="color: #f59e0b;">0</strong></p>
+                <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 4px;">*Se consume 1 crédito (USD 0.30) únicamente al completar una entrega con éxito.</p>
+                <button class="btn btn-secondary" style="font-size:0.85rem; padding:6px;" onclick="solicitarRecargaSimulada()">Comprar Combo (33 créditos / $10)</button>
+            </div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">📍 Entregas Disponibles en la Zona</h3>
+            <div id="lista-pedidos-disponibles">
+                <p style="color: #6b7280; font-style: italic;">Buscando pedidos comisionables en Machala...</p>
+            </div>
+        </div>
+
+        <!-- PANTALLA 4: ÁREA ADMINISTRATIVA -->
+        <div id="screen-admin" class="screen">
+            <h2 style="color: var(--danger); margin-bottom: 15px;">🛠️ Control Administrativo Seguro</h2>
+            
+            <div class="card" style="border-left: 4px solid var(--danger);">
+                <h4>Panel General de Control</h4>
+                <p style="font-size: 0.95rem; margin-top: 5px;">Monitoreo atómico de operaciones comerciales, asignaciones manuales, verificación de depósitos y auditoría financiera.</p>
+            </div>
+
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">📋 Todos los Pedidos del Sistema</h3>
+            <div id="lista-pedidos-admin">
+                <p style="color: #6b7280; font-style: italic;">No hay registros globales de pedidos.</p>
+            </div>
+        </div>
+
+        <p class="footer-note">Mercurio Rush v1.0.0 - Machala, El Oro. Operación en efectivo directo al repartidor.</p>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN DE CONEXIÓN A SUPABASE (ETAPA 5)
+        // ==========================================
+        // REEMPLAZA ESTOS DOS VALORES CON LOS QUE COPIASTE EN TU BLOC DE NOTAS
+        const SUPABASE_URL = "AQUÍ_PEGA_TU_PROJECT_URL";
+        const SUPABASE_ANON_KEY = "AQUÍ_PEGA_TU_PUBLISHABLE_KEY";
+
+        // Inicializar el cliente global de Supabase de forma segura
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Identificadores fijos de prueba (Simulación de sesión de usuario sin login complejo para iniciar)
