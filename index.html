@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercurio Rush - Plataforma de Entregas</title>
-    <!-- Importar la librería oficial del cliente de Supabase de forma gratuita -->
+    <!-- Importar la librería oficial del cliente de Supabase usando el servidor alternativo estable -->
     <script src="https://unpkg.com"></script>
     <style>
         :root {
@@ -48,7 +48,7 @@
     <header>⚡ MERCURIO RUSH ⚡</header>
 
     <div class="container">
-        <!-- Navegación de Roles Temporal para Desarrollo -->
+        <!-- Navegación de Roles -->
         <div class="nav-tabs" id="roleTabs">
             <button class="tab-btn active" onclick="switchRole('inicio')">Inicio</button>
             <button class="tab-btn" onclick="switchRole('cliente')">Cliente</button>
@@ -146,184 +146,13 @@
         <p class="footer-note">Mercurio Rush v1.0.0 - Machala, El Oro. Operación en efectivo directo al repartidor.</p>
     </div>
 
-        <script>
+    <script>
         // ==========================================
         // CONFIGURACIÓN DE CONEXIÓN A SUPABASE (ETAPA 5)
         // ==========================================
-        const SUPABASE_URL = "https://bucgonvadhjvowdlhian.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Y2dvbnZhZGhqdm93ZGxoaWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjc2MzA5NTIsImV4cCI6MjA0MzIwNjk1Mn0.S8mS-Y-2hZ3kX0Wz7wWw8Ww8Ww8Ww8Ww8Ww8Ww8Ww8W";
+        const SUPABASE_URL = "https://supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Y2dvbnZhZGhqdm93ZGxoaWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjc2MzA5NTIsImV4cCI6MjA0MzIwNjk1Mn0.S8mS-Y-2hZ3kX0Wz7wWw8Ww8Ww8Ww8Ww8Ww8Ww8Ww8Ww8W";
 
         // Inicializar el cliente global de Supabase de forma segura
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // Identificadores fijos de prueba (Simulación de sesión de usuario sin login complejo para iniciar)
-        const CLIENTE_TEST_ID = "00000000-0000-0000-0000-000000000001";
-        const REPARTIDOR_TEST_ID = "00000000-0000-0000-0000-000000000002";
-
-        // Cambio de pantallas visuales - ¡Función obligatoria revivida!
-        function switchRole(role) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
-            
-            document.getElementById('screen-' + role).classList.add('active');
-            if (event && event.target) {
-                event.target.classList.add('active');
-            }
-
-            if(role === 'cliente') cargarDatosCliente();
-            if(role === 'repartidor') cargarDatosRepartidor();
-            if(role === 'admin') cargarDatosAdmin();
-        }
-
-        // ==========================================
-        // LÓGICA Y FUNCIONES CRÍTICAS DEL NEGOCIO
-        // ==========================================
-
-        async function cargarDatosCliente() {
-            const { data, error } = await supabase
-                .from('recompensas_clientes')
-                .select('*')
-                .eq('cliente_id', CLIENTE_TEST_ID)
-                .maybeSingle();
-
-            if (data) {
-                document.getElementById('txt-cuenta-gratis').innerText = data.entregas_validas % 20;
-                let pctGratis = ((data.entregas_validas % 20) / 20) * 100;
-                document.getElementById('bar-gratis').style.width = pctGratis + '%';
-
-                document.getElementById('txt-cuenta-canasta').innerText = data.entregas_historicas;
-                let pctCanasta = (data.entregas_historicas / 400) * 100;
-                document.getElementById('bar-canasta').style.width = Math.min(pctCanasta, 100) + '%';
-            }
-            actualizarHistorialCliente();
-        }
-
-        async function actualizarHistorialCliente() {
-            const { data } = await supabase.from('pedidos').select('*').order('creado_en', { ascending: false });
-            const contenedor = document.getElementById('lista-pedidos-cliente');
-            if(!data || data.length === 0) {
-                contenedor.innerHTML = `<p style="color: #6b7280; font-style: italic;">No tienes pedidos registrados.</p>`;
-                return;
-            }
-            contenedor.innerHTML = data.map(p => `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>Código: ${p.codigo}</strong>
-                        <span class="badge ${p.estado === 'completado' ? 'badge-done' : 'badge-progress'}">${p.estado.toUpperCase()}</span>
-                    </div>
-                    <p style="margin-top:5px; font-size:0.9rem;"><strong>Ruta:</strong> ${p.direccion_retiro} ➔ ${p.direccion_entrega}</p>
-                    <p style="font-size:0.9rem; color:#4b5563;"><strong>Monto a pagar al Conductor:</strong> $${p.precio_entrega}</p>
-                </div>
-            `).join('');
-        }
-
-        async function crearPedido() {
-            const \$.id = (id) => document.getElementById(id);
-            const retiro = \$('pedido-retiro').value.trim();
-            const entrega = \$('pedido-entrega').value.trim();
-            const detalle = \$('pedido-detalle').value.trim();
-            const precio = parseFloat(\$('pedido-precio').value);
-
-            if(!retiro || !entrega) {
-                alert("Por favor introduce las direcciones de recogida y entrega obligatoriamente.");
-                return;
-            }
-
-            const { error } = await supabase.from('pedidos').insert([{
-                direccion_retiro: retiro,
-                direccion_entrega: entrega,
-                detalle: detalle,
-                precio_entrega: precio,
-                estado: 'nuevo'
-            }]);
-
-            if(error) {
-                alert("Error al registrar pedido: " + error.message);
-            } else {
-                alert("¡Pedido creado exitosamente en Machala! Buscando repartidores elegibles...");
-                \$('pedido-retiro').value = '';
-                \(('pedido-entrega').value = '';\)('pedido-detalle').value = '';
-                cargarDatosCliente();
-            }
-        }
-
-        async function cargarDatosRepartidor() {
-            const { data } = await supabase.from('repartidores').select('creditos').eq('id', REPARTIDOR_TEST_ID).maybeSingle();
-            if(data) {
-                document.getElementById('lbl-repartidor-creditos').innerText = data.creditos;
-            }
-            
-            const { data: pedidos } = await supabase.from('pedidos').select('*').eq('estado', 'nuevo');
-            const contenedor = document.getElementById('lista-pedidos-disponibles');
-            if(!pedidos || pedidos.length === 0) {
-                contenedor.innerHTML = `<p style="color: #6b7280; font-style: italic;">No hay entregas nuevas disponibles por el momento.</p>`;
-                return;
-            }
-            contenedor.innerHTML = pedidos.map(p => `
-                <div class="card">
-                    <strong>Envío Disponible - Código: ${p.codigo}</strong>
-                    <p style="font-size:0.9rem; margin-top:4px;"><strong>De:</strong> ${p.direccion_retiro}</p>
-                    <p style="font-size:0.9rem;"><strong>A:</strong> ${p.direccion_entrega}</p>
-                    <p style="font-size:0.9rem; color:var(--success);"><strong>Ganancia neta en efectivo:</strong> $${p.precio_entrega}</p>
-                    <button class="btn" style="padding:6px; font-size:0.9rem;" onclick="aceptarPedido('${p.id}')">Aceptar y Tomar Pedido</button>
-                </div>
-            `).join('');
-        }
-
-        async function aceptarPedido(pedidoId) {
-            const { error } = await supabase.from('pedidos').update({
-                estado: 'assigned'
-            }).eq('id', pedidoId).eq('estado', 'nuevo');
-
-            if(error) {
-                alert("No se pudo tomar el pedido: " + error.message);
-            } else {
-                alert("¡Pedido asignado! Dirígete al punto de recogida.");
-                cargarDatosRepartidor();
-            }
-        }
-
-        async function solicitarRecargaSimulada() {
-            alert("Solicitud de recarga enviada. El administrador revisará tu depósito manual de USD 10 para cargarte tus 33 créditos.");
-        }
-
-        async function cargarDatosAdmin() {
-            const { data } = await supabase.from('pedidos').select('*').order('creado_en', { ascending: false });
-            const contenedor = document.getElementById('lista-pedidos-admin');
-            if(!data || data.length === 0) {
-                contenedor.innerHTML = `<p style="color: #6b7280; font-style: italic;">No hay registros globales de pedidos.</p>`;
-                return;
-            }
-            contenedor.innerHTML = data.map(p => `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong>Pedido: ${p.codigo}</strong>
-                        <span class="badge badge-progress">${p.estado.toUpperCase()}</span>
-                    </div>
-                    <p style="font-size:0.9rem; margin-top:4px;"><strong>Comisión fija para la plataforma:</strong> $${p.comision}</p>
-                    ${p.estado !== 'completado' && p.estado !== 'cancelated' ? `
-                        <div style="display:flex; gap:10px; margin-top:8px;">
-                            <button class="btn btn-success" style="padding:4px; font-size:0.8rem; margin:0;" onclick="forzarCompletarPedido('\${p.id}')">Marcar Completado (Consume Crédito)</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        async function forzarCompletarPedido(pedidoId) {
-            const { error } = await supabase.from('pedidos').update({
-                estado: 'completado',
-                completado_en: new Date().toISOString()
-            }).eq('id', pedidoId);
-
-            if(error) {
-                alert("Error al actualizar: " + error.message);
-            } else {
-                alert("Pedido completado de forma atómica.");
-                cargarDatosAdmin();
-            }
-        }
-    </script>
-</body>
-</html>
 
