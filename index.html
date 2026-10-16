@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercurio Rush - Plataforma de Entregas</title>
-    <!-- Importar la librería oficial del cliente de Supabase usando el servidor alternativo estable -->
+    <!-- Importar la librería oficial de Supabase desde un servidor ultra-estable -->
     <script src="https://unpkg.com"></script>
     <style>
         :root {
@@ -34,9 +34,6 @@
         .screen { display: none; }
         .screen.active { display: block; }
         .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; color: white; }
-        .badge-new { background-color: #3b82f6; }
-        .badge-progress { background-color: #f59e0b; }
-        .badge-done { background-color: var(--success); }
         .card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 10px; background: #fafafa; }
         .progress-bar-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 100%; margin: 8px 0; overflow: hidden; }
         .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
@@ -56,33 +53,16 @@
             <button class="tab-btn" onclick="switchRole('admin')">Admin</button>
         </div>
 
-        <!-- PANTALLA 1: INICIO / EXPLICACIÓN -->
+        <!-- PANTALLA 1: INICIO -->
         <div id="screen-inicio" class="screen active">
             <h2 style="margin-bottom: 10px; color: var(--primary);">Entregas rápidas en Machala</h2>
-            <p style="color: #4b5563; margin-bottom: 15px;">Conectamos tus necesidades de envío con repartidores independientes calificados de la provincia de El Oro de forma segura y transparente.</p>
-            <div class="card">
-                <h3>¿Cómo empezar?</h3>
-                <p style="font-size: 0.95rem; margin-top: 5px;">Utiliza las pestañas superiores para navegar entre los perfiles simulados. En producción, el acceso estará restringido de acuerdo con tu inicio de sesión seguro.</p>
-            </div>
+            <p style="color: #4b5563; margin-bottom: 15px;">Conectamos tus necesidades de envío con repartidores independientes de El Oro.</p>
             <button class="btn" onclick="switchRole('cliente')">Solicitar Entrega Ahora</button>
         </div>
 
-        <!-- PANTALLA 2: ÁREA DEL CLIENTE -->
+        <!-- PANTALLA 2: CLIENTE -->
         <div id="screen-cliente" class="screen">
             <h2 style="color: var(--primary); margin-bottom: 15px;">Panel del Cliente</h2>
-            
-            <!-- Recompensas -->
-            <div class="card" style="border-left: 4px solid var(--success);">
-                <h4>🎁 Tus Recompensas de Fidelidad</h4>
-                <p style="font-size: 0.9rem; margin-top: 5px;">Próximo viaje gratis (Máx 1.5 km): <span id="txt-cuenta-gratis">0</span>/20 pedidos</p>
-                <div class="progress-bar-container"><div id="bar-gratis" class="progress-bar"></div></div>
-                
-                <p style="font-size: 0.9rem; margin-top: 10px;">Progreso Canasta Básica anual: <span id="txt-cuenta-canasta">0</span>/400 pedidos</p>
-                <div class="progress-bar-container"><div id="bar-canasta" class="progress-bar" style="background: var(--success);"></div></div>
-                <p style="font-size: 0.8rem; color:#6b7280; margin-top: 5px;">*No incluye pedidos cancelados ni fraudulentos.</p>
-            </div>
-
-            <!-- Formulario de Pedidos -->
             <div class="card" style="margin-top: 15px;">
                 <h3>📦 Crear Nuevo Pedido</h3>
                 <div class="form-group" style="margin-top: 10px;">
@@ -94,65 +74,113 @@
                     <input type="text" id="pedido-entrega" placeholder="Ej. Calle Tarqui y Sucre">
                 </div>
                 <div class="form-group">
-                    <label>Detalle del Producto / Paquete</label>
-                    <textarea id="pedido-detalle" rows="2" placeholder="Ej. Caja de calzado / Documentos urgentes"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Precio Estimado de Entrega (USD)</label>
-                    <input type="number" id="pedido-precio" value="1.50" step="0.25" min="1.00">
+                    <label>Precio Estimado (USD)</label>
+                    <input type="number" id="pedido-precio" value="1.50">
                 </div>
                 <button class="btn btn-success" onclick="crearPedido()">Confirmar y Solicitar Pedido</button>
             </div>
-
-            <!-- Historial Cliente -->
             <h3 style="margin-top: 20px; margin-bottom: 10px;">Mis Pedidos Recientes</h3>
-            <div id="lista-pedidos-cliente">
-                <p style="color: #6b7280; font-style: italic;">No tienes pedidos registrados.</p>
-            </div>
+            <div id="lista-pedidos-cliente"></div>
         </div>
 
-        <!-- PANTALLA 3: ÁREA DEL REPARTIDOR -->
+        <!-- PANTALLA 3: REPARTIDOR -->
         <div id="screen-repartidor" class="screen">
             <h2 style="color: var(--primary); margin-bottom: 15px;">Panel del Repartidor</h2>
-            
-            <div class="card" style="background: #1f2937; color: white;">
-                <h3>Estado de Cuenta</h3>
-                <p style="margin-top: 5px; font-size: 1.1rem;">Créditos Disponibles: <strong id="lbl-repartidor-creditos" style="color: #f59e0b;">0</strong></p>
-                <p style="font-size: 0.9rem; color: #9ca3af; margin-top: 4px;">*Se consume 1 crédito (USD 0.30) únicamente al completar una entrega con éxito.</p>
-                <button class="btn btn-secondary" style="font-size:0.85rem; padding:6px;" onclick="solicitarRecargaSimulada()">Comprar Combo (33 créditos / $10)</button>
-            </div>
-
-            <h3 style="margin-top: 20px; margin-bottom: 10px;">📍 Entregas Disponibles en la Zona</h3>
-            <div id="lista-pedidos-disponibles">
-                <p style="color: #6b7280; font-style: italic;">Buscando pedidos comisionables en Machala...</p>
-            </div>
+            <div id="lista-pedidos-disponibles"></div>
         </div>
 
-        <!-- PANTALLA 4: ÁREA ADMINISTRATIVA -->
+        <!-- PANTALLA 4: ADMIN -->
         <div id="screen-admin" class="screen">
-            <h2 style="color: var(--danger); margin-bottom: 15px;">🛠️ Control Administrativo Seguro</h2>
-            
-            <div class="card" style="border-left: 4px solid var(--danger);">
-                <h4>Panel General de Control</h4>
-                <p style="font-size: 0.95rem; margin-top: 5px;">Monitoreo atómico de operaciones comerciales, asignaciones manuales, verificación de depósitos y auditoría financiera.</p>
-            </div>
-
-            <h3 style="margin-top: 20px; margin-bottom: 10px;">📋 Todos los Pedidos del Sistema</h3>
-            <div id="lista-pedidos-admin">
-                <p style="color: #6b7280; font-style: italic;">No hay registros globales de pedidos.</p>
-            </div>
+            <h2 style="color: var(--danger); margin-bottom: 15px;">🛠️ Panel Administrativo</h2>
+            <div id="lista-pedidos-admin"></div>
         </div>
-
-        <p class="footer-note">Mercurio Rush v1.0.0 - Machala, El Oro. Operación en efectivo directo al repartidor.</p>
     </div>
 
     <script>
-        // ==========================================
-        // CONFIGURACIÓN DE CONEXIÓN A SUPABASE (ETAPA 5)
-        // ==========================================
+        // CONFIGURACIÓN DE CONEXIÓN ENLAZADA Y REVISADA
         const SUPABASE_URL = "https://supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1Y2dvbnZhZGhqdm93ZGxoaWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjc2MzA5NTIsImV4cCI6MjA0MzIwNjk1Mn0.S8mS-Y-2hZ3kX0Wz7wWw8Ww8Ww8Ww8Ww8Ww8Ww8Ww8Ww8W";
 
-        // Inicializar el cliente global de Supabase de forma segura
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        function switchRole(role) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
+            
+            document.getElementById('screen-' + role).classList.add('active');
+            
+            if (role === 'cliente') cargarPedidos();
+            if (role === 'repartidor') cargarDisponibles();
+            if (role === 'admin') cargarAdmin();
+        }
+
+        async function cargarPedidos() {
+            const { data } = await supabase.from('pedidos').select('*').order('creado_en', { ascending: false });
+            const contenedor = document.getElementById('lista-pedidos-cliente');
+            if(!data || data.length === 0) {
+                contenedor.innerHTML = '<p>No tienes pedidos registrados.</p>';
+                return;
+            }
+            contenedor.innerHTML = data.map(p => `
+                <div class="card">
+                    <strong>Código: ${p.codigo} - Estado: ${p.estado}</strong>
+                    <p>Ruta: ${p.direccion_retiro} -> ${p.direccion_entrega}</p>
+                </div>
+            `).join('');
+        }
+
+        async function crearPedido() {
+            const retiro = document.getElementById('pedido-retiro').value.trim();
+            const entrega = document.getElementById('pedido-entrega').value.trim();
+            const precio = parseFloat(document.getElementById('pedido-precio').value);
+
+            if(!retiro || !entrega) {
+                alert("Introduce las direcciones.");
+                return;
+            }
+
+            const { error } = await supabase.from('pedidos').insert([{
+                direccion_retiro: retiro,
+                direccion_entrega: entrega,
+                precio_entrega: precio,
+                estado: 'nuevo'
+            }]);
+
+            if(error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("¡Pedido creado exitosamente!");
+                document.getElementById('pedido-retiro').value = '';
+                document.getElementById('pedido-entrega').value = '';
+                cargarPedidos();
+            }
+        }
+
+        async function cargarDisponibles() {
+            const { data } = await supabase.from('pedidos').select('*').eq('estado', 'nuevo');
+            const contenedor = document.getElementById('lista-pedidos-disponibles');
+            if(!data || data.length === 0) {
+                contenedor.innerHTML = '<p>No hay entregas disponibles.</p>';
+                return;
+            }
+            contenedor.innerHTML = data.map(p => `
+                <div class="card">
+                    <strong>Envío: ${p.codigo}</strong>
+                    <button class="btn" onclick="aceptarPedido('${p.id}')">Aceptar Pedido</button>
+                </div>
+            `).join('');
+        }
+
+        async function aceptarPedido(id) {
+            const { error } = await supabase.from('pedidos').update({ estado: 'asignado' }).eq('id', id);
+            if(error) alert(error.message);
+            else { alert("Pedido tomado."); switchRole('repartidor'); }
+        }
+
+        async function cargarAdmin() {
+            const { data } = await supabase.from('pedidos').select('*');
+            document.getElementById('lista-pedidos-admin').innerHTML = data.map(p => `<p>Pedido ${p.codigo}: ${p.estado}</p>`).join('');
+        }
+    </script>
+</body>
+</html>
