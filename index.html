@@ -35,9 +35,8 @@
         .screen.active { display: block; }
         .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; color: white; }
         .card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 10px; background: #fafafa; }
-        .progress-bar-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 100%; margin: 8px 0; overflow: hidden; }
-        .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
         .footer-note { text-align: center; font-size: 0.8rem; color: #6b7280; margin-top: 20px; }
+        .price-box { background: #fef3c7; border: 1px solid #f59e0b; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: bold; color: #b45309; text-align: center; }
     </style>
 </head>
 <body>
@@ -74,10 +73,22 @@
                     <input type="text" id="pedido-entrega" placeholder="Ej. Calle Tarqui y Sucre">
                 </div>
                 <div class="form-group">
-                    <label>Precio Estimado (USD)</label>
-                    <input type="number" id="pedido-precio" value="1.50">
+                    <label>Distancia Estimada del Viaje (Kilómetros)</label>
+                    <select id="pedido-distancia" onchange="calcularTarifaDinamica()">
+                        <option value="1.0">Hasta 1.5 km (Carrera Mínima)</option>
+                        <option value="2.0">2.0 km</option>
+                        <option value="3.0">3.0 km</option>
+                        <option value="4.0">4.0 km</option>
+                        <option value="5.0">5.0 km</option>
+                    </select>
                 </div>
-                <button class="btn btn-success" onclick="crearPedido()">Confirmar y Solicitar Pedido</button>
+                
+                <!-- Caja de visualización de precios en tiempo real -->
+                <div class="price-box">
+                    Precio de Entrega: <span id="lbl-precio-calculado">$1.50</span> | Comisión: $0.30
+                </div>
+
+                <button class="btn btn-success" style="margin-top:15px;" onclick="crearPedido()">Confirmar y Solicitar Pedido</button>
             </div>
             <h3 style="margin-top: 20px; margin-bottom: 10px;">Mis Pedidos Recientes</h3>
             <div id="lista-pedidos-cliente"></div>
@@ -103,13 +114,31 @@
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Función matemática para actualizar la tarifa dinámica en pantalla
+        function calcularTarifaDinamica() {
+            const distancia = parseFloat(document.getElementById('pedido-distancia').value);
+            let precioFinal = 1.50; // Carrera mínima base
+
+            if (distancia > 1.5) {
+                // Sumar 0.50 ctvs por cada kilómetro adicional superado
+                precioFinal = 1.50 + ((distancia - 1.5) * 0.50);
+            }
+
+            // Mostrar el precio formateado con dos decimales en la caja amarilla
+            document.getElementById('lbl-precio-calculado').innerText = "$" + precioFinal.toFixed(2);
+            return precioFinal;
+        }
+
         function switchRole(role) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
             
             document.getElementById('screen-' + role).classList.add('active');
             
-            if (role === 'cliente') cargarPedidos();
+            if (role === 'cliente') {
+                calcularTarifaDinamica();
+                cargarPedidos();
+            }
             if (role === 'repartidor') cargarDisponibles();
             if (role === 'admin') cargarAdmin();
         }
@@ -125,6 +154,7 @@
                 <div class="card">
                     <strong>Código: ${p.codigo} - Estado: ${p.estado}</strong>
                     <p>Ruta: ${p.direccion_retiro} -> ${p.direccion_entrega}</p>
+                    <p style="font-weight:bold; color:var(--success); margin-top:5px;">Valor a pagar en efectivo: $${p.precio_entrega}</p>
                 </div>
             `).join('');
         }
@@ -132,55 +162,23 @@
         async function crearPedido() {
             const retiro = document.getElementById('pedido-retiro').value.trim();
             const entrega = document.getElementById('pedido-entrega').value.trim();
-            const precio = parseFloat(document.getElementById('pedido-precio').value);
+            const precio = calcularTarifaDinamica(); // Obtener el precio calculado dinámicamente
 
             if(!retiro || !entrega) {
-                alert("Introduce las direcciones.");
+                alert("Por favor, introduce las direcciones de recogida y entrega.");
                 return;
             }
 
+            // Inserción segura con precio dinámico y comisión fija de 0.30 ctvs
             const { error } = await supabase.from('pedidos').insert([{
                 direccion_retiro: retiro,
                 direccion_entrega: entrega,
                 precio_entrega: precio,
+                comision: 0.30,
                 estado: 'nuevo'
             }]);
 
             if(error) {
                 alert("Error: " + error.message);
             } else {
-                alert("¡Pedido creado exitosamente!");
-                document.getElementById('pedido-retiro').value = '';
-                document.getElementById('pedido-entrega').value = '';
-                cargarPedidos();
-            }
-        }
-
-        async function cargarDisponibles() {
-            const { data } = await supabase.from('pedidos').select('*').eq('estado', 'nuevo');
-            const contenedor = document.getElementById('lista-pedidos-disponibles');
-            if(!data || data.length === 0) {
-                contenedor.innerHTML = '<p>No hay entregas disponibles.</p>';
-                return;
-            }
-            contenedor.innerHTML = data.map(p => `
-                <div class="card">
-                    <strong>Envío: ${p.codigo}</strong>
-                    <button class="btn" onclick="aceptarPedido('${p.id}')">Aceptar Pedido</button>
-                </div>
-            `).join('');
-        }
-
-        async function aceptarPedido(id) {
-            const { error } = await supabase.from('pedidos').update({ estado: 'asignado' }).eq('id', id);
-            if(error) alert(error.message);
-            else { alert("Pedido tomado."); switchRole('repartidor'); }
-        }
-
-        async function cargarAdmin() {
-            const { data } = await supabase.from('pedidos').select('*');
-            document.getElementById('lista-pedidos-admin').innerHTML = data.map(p => `<p>Pedido ${p.codigo}: ${p.estado}</p>`).join('');
-        }
-    </script>
-</body>
-</html>
+                alert("¡Pedido creado exitosamente con tarifa dinámica!");
